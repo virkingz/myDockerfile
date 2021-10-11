@@ -6,7 +6,7 @@ on:
       - 'main'
     paths:
       - 'softethervpn/**'
- 
+      
 jobs:
   buildx:
     runs-on: ubuntu-latest
