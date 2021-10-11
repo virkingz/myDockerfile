@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     paths:
-      - 'Dockerfile_server'
+      - 'softethervpn/**'
       
 jobs:
   buildx:
