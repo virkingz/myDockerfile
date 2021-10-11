@@ -5,7 +5,7 @@ RUN set -ex \
     && apk update \
     && apk upgrade \
     && apk add --no-cache make g++ readline readline-dev openssl openssl-dev zlib zlib-dev \
-    && cd /home && wget https://hub.fastgit.org/SoftEtherVPN/SoftEtherVPN_Stable/archive/refs/heads/master.zip \
+    && cd /home && wget https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/archive/refs/heads/master.zip \
     && unzip master.zip && cd SoftEtherVPN_Stable-master && ./configure && make
 
 FROM alpine:3.12
