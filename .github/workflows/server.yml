@@ -5,10 +5,9 @@ on:
     branches:
       - 'main'
     paths:
-      - 'softethervpn/Dockerfile_server'
+      - 'softethervpn/*'
     paths-ignore:
       - "README.md"
-      - ".github/workflows/*"
  
 jobs:
   buildx:
