@@ -8,7 +8,6 @@ on:
       - 'softethervpn/*'
     paths-ignore:
       - "README.md"
-      - ".github/workflows/*"
  
 jobs:
   buildx:
@@ -34,5 +33,5 @@ jobs:
           docker buildx build \
           --platform=linux/amd64,linux/arm/v7,linux/arm64 \
           --output "type=image,push=true" \
-          --file ./softethervpn/Dockerfile . \
+          --file ./softethervpn/Dockerfile_server . \
           --tag virking/softethervpn:server
