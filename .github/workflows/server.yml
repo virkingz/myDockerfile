@@ -5,7 +5,9 @@ on:
     branches:
       - 'main'
     paths:
-      - 'softethervpn/**'
+      - 'softethervpn/Dockerfile_server'
+  schedule:
+      - cron: '0 0 1-30/3 * *'
       
 jobs:
   buildx:
