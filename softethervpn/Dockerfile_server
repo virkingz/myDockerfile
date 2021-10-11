@@ -26,5 +26,6 @@ RUN set -ex \
 WORKDIR /usr/vpnserver
 
 ENTRYPOINT ["docker_entrypoint.sh"]
+
 cmd ["crond"]
 
