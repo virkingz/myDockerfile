@@ -1,0 +1,10 @@
+FROM ubuntu:16.04
+RUN set -eux \
+    && apt update && apt upgrade && apt install curl wget -y \
+    && curl -sSO http://download.bt.cn/install/install_panel.sh && echo 'y' | bash install_panel.sh \
+    && echo 'admin' | bt 6 && echo 'passwd' | grep 5 
+
+WORKDIR /www/wwwroot
+
+ENTRYPOINT ["/sbin/init"]
+cmd ["crond"]
