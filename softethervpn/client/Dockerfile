@@ -12,8 +12,8 @@ FROM alpine:3.12
 
 RUN set -eux && sed -i "s/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g" /etc/apk/repositories && mkdir /usr/vpnclient/
 
-COPY --from=goBuild /home/SoftEtherVPN_Stable-master/bin/vpnclient/* /usr/vpmclient/
-COPY --from=goBuild /home/SoftEtherVPN_Stable-master/bin/vpncmd/* /usr/vpmclient/
+COPY --from=goBuild /home/SoftEtherVPN_Stable-master/bin/vpnclient/* /usr/vpnclient/
+COPY --from=goBuild /home/SoftEtherVPN_Stable-master/bin/vpncmd/* /usr/vpnclient/
 
 RUN set -ex \
     && apk update \
