@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     paths:
-      - 'softethervpn/server/**'
+      - 'softethervpn/client/**'
   schedule:
       - cron: '0 0 1-30/3 * *'
       
@@ -33,5 +33,5 @@ jobs:
           docker buildx build \
           --platform=linux/amd64,linux/arm/v7,linux/arm64 \
           --output "type=image,push=true" \
-          --file ./softethervpn/server/Dockerfile . \
-          --tag virking/softethervpn:server
+          --file ./softethervpn/client/Dockerfile . \
+          --tag virking/softethervpn:client
