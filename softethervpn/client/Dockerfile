@@ -22,7 +22,10 @@ RUN set -ex \
     && cd /usr/vpnclient \
     && echo '#!/bin/sh' > /usr/local/bin/docker_entrypoint.sh \
     && echo '/usr/vpnclient/vpnclient start' >> /usr/local/bin/docker_entrypoint.sh \
-    && echo 'crond -f' >> /usr/local/bin/docker_entrypoint.sh && chmod 755 /usr/local/bin/docker_entrypoint.sh
+    && echo 'crond -f' >> /usr/local/bin/docker_entrypoint.sh && chmod 755 /usr/local/bin/docker_entrypoint.sh \
+    && echo '#!/bin/sh' > /usr/bin/vpncmd \
+    && echo '/usr/vpnclient/vpncmd "$@"' >> /usr/bin/vpncmd \
+    && echo 'exit $?' >> /usr/bin/vpncmd && chmod 755 /usr/bin/vpncmd
 
 WORKDIR /usr/vpnclient
 
