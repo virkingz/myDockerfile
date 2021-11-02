@@ -6,7 +6,6 @@ RUN set -eux \
     && rm install_panel.sh
 RUN set -eux \
     && cd /www/server/panel/install && bash install_soft.sh 4 install nginx 1.18 &>/tmp/panelExec.log \
-    && bash install_soft.sh 4 install mysql 5.6 &> /tmp/panelExec.log \
     && bash install_soft.sh 4 install php 7.2 &> /tmp/panelExec.log
 WORKDIR /www/wwwroot
 
