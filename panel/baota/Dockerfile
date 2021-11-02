@@ -4,9 +4,6 @@ RUN set -eux \
     && curl -sSO http://download.bt.cn/install/install_panel.sh && echo 'y' | bash install_panel.sh \
     && echo 'virking' | bt 6 && echo '12345678' | bt 5 && bt 11 \
     && rm install_panel.sh
-RUN set -eux \
-    && cd /www/server/panel/install && bash install_soft.sh 4 install nginx 1.18 &>/tmp/panelExec.log \
-    && bash install_soft.sh 4 install php 7.2 &> /tmp/panelExec.log
 WORKDIR /www/wwwroot
 
 ENTRYPOINT ["/sbin/init"]
