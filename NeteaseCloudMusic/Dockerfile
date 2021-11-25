@@ -7,10 +7,11 @@ RUN set -ex \
 	&& cd /home && git clone https://github.com/yayxs/NeteaseCloudMusic.git \
 	&& npm install -g n && n v12
 
-RUN 	set -ex \
-	&& npm install -g cordova@8 && npm install -g yarn && npm install -g @vue/cli \
-	&& cd /home/NeteaseCloudMusic && npm install \
-	&& echo '#!/bin/sh' > /usr/local/bin/docker_entrypoint.sh \
+RUN 	npm install -g cordova@8 && npm install -g yarn && npm install -g @vue/cli 
+
+RUN 	cd /home/NeteaseCloudMusic && npm install
+
+RUN     echo '#!/bin/sh' > /usr/local/bin/docker_entrypoint.sh \
 	&& echo 'cd /home/NeteaseCloudMusic && yarn run start' >> /usr/local/bin/docker_entrypoint.sh \
 	&& echo 'crond -f' >> /usr/local/bin/docker_entrypoint.sh && chmod 755 /usr/local/bin/docker_entrypoint.sh
 
