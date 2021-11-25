@@ -7,7 +7,7 @@ RUN set -ex \
 	&& cd /home && git clone https://github.com/yayxs/NeteaseCloudMusic.git \
 	&& npm install -g n && n v12
 
-RUN 	npm install -g cordova@8 && npm install -g yarn && npm install -g @vue/cli 
+RUN 	cd /home && npm install -g cordova@8 && npm install -g yarn && npm install -g @vue/cli 
 
 RUN 	cd /home/NeteaseCloudMusic && npm install
 
