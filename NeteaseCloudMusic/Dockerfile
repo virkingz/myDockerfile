@@ -12,5 +12,6 @@ RUN set -ex \
 	&& echo 'crond -f' >> /usr/local/bin/docker_entrypoint.sh && chmod 755 /usr/local/bin/docker_entrypoint.sh
 
 WORKDIR /home/NeteaseCloudMusic
+
 ENTRYPOINT ["docker_entrypoint.sh"]
 CMD ["crond"]
