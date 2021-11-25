@@ -14,4 +14,4 @@ RUN set -ex \
 WORKDIR /home/NeteaseCloudMusic
 
 ENTRYPOINT ["docker_entrypoint.sh"]
-cmd ["crond"]
+CMD ["crond"]
