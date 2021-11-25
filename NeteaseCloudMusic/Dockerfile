@@ -6,7 +6,8 @@ RUN set -ex \
 	&& apk add --no-cache make g++ npm git bash python2 python3 \
 	&& cd /home && git clone https://github.com/yayxs/NeteaseCloudMusic.git \
 	&& npm install -g n && n v12
-RUN     ["/bin/bash", "-c", "cd /home && npm install -g cordova@8 && npm install -g yarn && npm install -g @vue/cli && npm install next@canary"]
+RUN     ["/bin/bash", "-c", "cd /home && npm install -g cordova@8"]
+RUN     ["/bin/bash", "-c", "cd /home && npm install -g yarn && npm install -g @vue/cli && npm install next@canary"]
 RUN 	["/bin/bash", "-c", "cd /home/NeteaseCloudMusic && npm install && yarn install"]
 RUN     echo '#!/bin/sh' > /usr/local/bin/docker_entrypoint.sh \
 	&& echo 'cd /home/NeteaseCloudMusic && yarn run start' >> /usr/local/bin/docker_entrypoint.sh \
