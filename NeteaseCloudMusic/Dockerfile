@@ -12,6 +12,5 @@ RUN     echo '#!/bin/sh' > /usr/local/bin/docker_entrypoint.sh \
 
 WORKDIR /home/optimization_open_neteasy_cloud
 
-
 ENTRYPOINT ["docker_entrypoint.sh"]
 CMD ["crond"]
