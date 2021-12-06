@@ -11,7 +11,7 @@ RUN apt-get update  \
     gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo \
     libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf \
     automake libtool autopoint device-tree-compiler \
-    proxychains4 sudo vim rsync\
+    proxychains4 sudo vim rsync systemd lsb_release\
     && groupadd -r build && useradd -r -u 1000 -g build build \
     && passwd -d root \
     && passwd -d build \
