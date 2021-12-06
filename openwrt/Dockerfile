@@ -26,5 +26,4 @@ USER build
 WORKDIR /home/build
 
 ENV FORCE_UNSAFE_CONFIGURE=1
-
 CMD ["/bin/bash"]
