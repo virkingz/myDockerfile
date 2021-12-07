@@ -1,9 +1,10 @@
 FROM ubuntu:20.04
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN set -ex \
     && apt-get update \
     && apt-get install -y locales curl wget \
-    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
     && apt-get install -y --no-install-recommends \
     build-essential asciidoc binutils bzip2 gawk gettext git \
     libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev \
@@ -16,8 +17,9 @@ RUN set -ex \
     && passwd -d build \
     && echo '%build ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* 
-
+    && rm -rf /var/lib/apt/lists/* \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 
+    
 ENV LANG en_US.utf8
 
 USER build
