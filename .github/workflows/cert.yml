@@ -1,4 +1,4 @@
-name: Build fastapi Image
+name: Build cert Image
  
 on:
   push:
