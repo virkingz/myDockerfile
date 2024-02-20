@@ -2,6 +2,7 @@ FROM manjarolinux/base:latest
 
 MAINTAINER virking <1057229665@qq.com>
 
-RUN pacman -Syu && pacman -S cmake  arm-none-eabi-gcc arm-none-eabi-newlib vim git gcc 
+RUN pacman -Syy --noconfirm --needed cmake arm-none-eabi-gcc arm-none-eabi-newlib vim git gcc && \
+    rm -f /var/cache/pacman/pkg/*
 
 WORKDIR /root
