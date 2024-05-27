@@ -1,13 +1,7 @@
 name: Build baota Image
  
 on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - 'panel/baota/**'
-  schedule:
-      - cron: '0 0 15 * *'
+  workflow_dispatch:
       
 jobs:
   buildx:
