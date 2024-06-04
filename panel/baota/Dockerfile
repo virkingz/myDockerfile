@@ -1,6 +1,7 @@
 FROM debian
 RUN set -eux \
     && apt update && apt -y install procps curl wget locales \
+    && apt-get install --reinstall init \
     && locale-gen en_US.UTF-8 \
     && wget -O install.sh http://download.bt.cn/install/install-ubuntu_6.0.sh && echo 'y' | bash install.sh ed8484bec \
     && echo 'virking' | bt 6 && echo '12345678' | bt 5 && bt 11 \
