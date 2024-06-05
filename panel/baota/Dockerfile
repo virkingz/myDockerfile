@@ -10,3 +10,5 @@ RUN set -eux \
 #RUN cd /www/server/panel/install && /bin/bash install_soft.sh 4 install php 7.4  &> /tmp/panelExec.log
 
 WORKDIR /www/wwwroot
+ENTRYPOINT ["/sbin/init"]
+cmd ["crond"]
