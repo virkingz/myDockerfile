@@ -1,0 +1,13 @@
+#!/command/with-contenv bash
+
+source /assets/functions/00-container
+prepare_service defaults single
+PROCESS_NAME="tinc"
+
+check_container_initialized
+check_service_initialized init
+liftoff
+
+### Startup Tinc
+print_start "Starting Tinc ${TINC_VERSION} for Host '${NODE}' on VPN '${NETWORK}'"
+exec tinc --net="${NETWORK}" start --no-detach --debug="${LOG_LEVEL}" --logfile="${LOG_PATH}"/"${NETWORK}".log

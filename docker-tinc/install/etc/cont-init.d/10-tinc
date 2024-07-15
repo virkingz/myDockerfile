@@ -1,0 +1,116 @@
+#!/command/with-contenv bash
+
+source /assets/functions/00-container
+prepare_service
+PROCESS_NAME="tinc"
+
+if [ "$SETUP_TYPE" = "AUTO" ]; then
+	### Sanity Checks
+	sanity_var NETWORK "Network name"
+	sanity_var NODE "Node name"
+	sanity_var PRIVATE_IP "Private IP"
+	#sanity_var PUBLIC_IP "Public IP"
+
+	if var_true ${ENABLE_GIT} ; then
+		echo "*/${CRON_PERIOD} * * * * git -C /etc/tinc/${NETWORK}/hosts/ pull >/dev/null 2>&1" > /assets/cron/crontab.txt
+	fi
+
+	### check if network exists
+	if [ ! -f /etc/tinc/"${NETWORK}"/tinc.conf ]; then
+		print_warn "No Tinc Network Detected.. Installing.."
+		mkdir -p /etc/tinc/"${NETWORK}"/
+		if var_true "${ENABLE_GIT}" ; then
+			sanity_var GIT_USER "Git username"
+			sanity_var GIT_PASS "Git password"
+			sanity_var GIT_URL "Git URL"
+			print_debug "Cloning existing repository from Git"
+			git clone https://"${GIT_USER}":"${GIT_PASS}"@"${GIT_URL}" /etc/tinc/"${NETWORK}"/hosts
+		else
+			mkdir -p /etc/tinc/"${NETWORK}"/hosts
+		fi
+
+		if [ -f /etc/tinc/"${NETWORK}"/hosts/"${NODE}" ]; then
+			rm -rf /etc/tinc/"${NETWORK}"/hosts/"${NODE}"
+		fi
+
+		tinc -n "${NETWORK}" init "${NODE}"
+if var_true "${ENABLE_SERVER}" ; then
+  cat << EOF >> /etc/tinc/"${NETWORK}"/hosts/"${NODE}"
+Address = ${PUBLIC_IP} ${LISTEN_PORT}
+EOF
+fi
+		# Declare public and private IPs in the host file, CONFIG/NET/hosts/HOST
+        cat << EOF >> /etc/tinc/"${NETWORK}"/hosts/"${NODE}"
+Subnet = ${PRIVATE_IP}/32
+Cipher = ${CIPHER}
+Digest = ${DIGEST}
+MACLength = ${MAC_LENGTH}
+Compression = ${COMPRESSION}
+EOF
+
+		if var_true "${ENABLE_GIT}" ; then
+			cd /etc/tinc/"${NETWORK}"/hosts
+			silent git config --global user.email "${NODE}""@docker"
+			silent git config --global user.name "${NODE}"
+			print_debug "Adding new node to Git"
+			silent git add .
+			print_debug "Comitting Changes to Git"
+			silent git commit -m "${NODE} - Reinitialized $(TZ="${TIMEZONE}" date +"%Y%m%d-%H%M%S")"
+			print_debug "Pushing to Git"
+			silent git push
+		fi
+	fi
+
+	# Set Runtime Configuration for Tinc
+    cat << EOF > /etc/tinc/"${NETWORK}"/tinc.conf
+Name = ${NODE}
+BindToAddress * ${LISTEN_PORT}
+AddressFamily = ipv4
+Device = /dev/net/tun
+Interface = ${INTERFACE}
+EOF
+
+	tinc_peers=$(echo "${PEERS}" | tr " " "\n" | uniq)
+	for host in $tinc_peers ; do
+		echo "ConnectTo = ${host}" >> /etc/tinc/"${NETWORK}"/tinc.conf
+	done
+
+	# Create the tinc-up / down scripts
+    cat <<EOF > /etc/tinc/"${NETWORK}"/tinc-up
+#!/bin/sh
+ifconfig ${INTERFACE} ${PRIVATE_IP} netmask 255.255.255.0
+EOF
+
+    cat <<EOF > /etc/tinc/"${NETWORK}"/tinc-down
+#!/bin/sh
+ifconfig ${INTERFACE} down
+EOF
+
+	### Grab latest hosts entries from Git
+	if var_true "${ENABLE_GIT}" ; then
+		print_notice "Grabbing latest Hosts from Repository..."
+		silent git -C /etc/tinc/"${NETWORK}"/hosts/ pull
+	fi
+
+    if var_false "${ENABLE_CONFIG_RELOAD}" ; then
+		print_debug "Disabling Configuration Reload functionality"
+		rm -rf /etc/services.available/11-config-reload
+	fi
+
+    if var_false "${ENABLE_WATCHDOG}" ; then
+		print_debug "Disabling Host Watchdog functionality"
+		rm -rf /etc/services.available/12-watchdog
+	else
+		sanity_var WATCHDOG_HOST "Watchdog Hostname or IP Address"
+	fi
+
+	chmod 600 /etc/tinc/${NETWORK}/*.priv
+	chmod +x /etc/tinc/${NETWORK}/tinc-up
+	chmod +x /etc/tinc/${NETWORK}/tinc-down
+
+	mkdir -p "${LOG_PATH}"
+	touch "${LOG_PATH}"/"${NETWORK}".log
+	create_logrotate tinc "${LOG_PATH}"/"${NETWORK}".log tinc
+fi
+
+liftoff
