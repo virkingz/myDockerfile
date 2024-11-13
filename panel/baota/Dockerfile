@@ -1,4 +1,4 @@
-FROM debian
+FROM debian:10
 RUN set -eux \
     && apt update && apt -y install procps curl wget locales \
     && apt-get -y install --reinstall init \
