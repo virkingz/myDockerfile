@@ -8,7 +8,7 @@ RUN set -ex \
 RUN set -ex \
         && echo '#!/bin/sh' > /usr/local/bin/docker_entrypoint.sh \
         && echo 'if command -v bt 14 > /dev/null 2>&1; then' >> /usr/local/bin/docker_entrypoint.sh \
-        && echo '    crond -f' >> /usr/local/bin/docker_entrypoint.sh \
+        && echo '    /bin/bash' >> /usr/local/bin/docker_entrypoint.sh \
         && echo 'else' >> /usr/local/bin/docker_entrypoint.sh \
         && echo '    wget -O install.sh https://download.bt.cn/install/install_lts.sh && echo "y" | bash install.sh ed8484bec' >> /usr/local/bin/docker_entrypoint.sh \
         && echo '    rm install.sh && reboot' >> /usr/local/bin/docker_entrypoint.sh \
