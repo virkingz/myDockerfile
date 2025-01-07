@@ -1,13 +1,7 @@
 name: Build samba Image
  
 on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - 'softethervpn/client/**'
-  schedule:
-      - cron: '0 0 1-30/3 * *'
+  workflow_dispatch:
       
 jobs:
   buildx:
