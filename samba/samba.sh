@@ -66,7 +66,7 @@ config="/etc/samba/smb.conf"
 users="/etc/samba/users.conf"
 
 
-if [ "$USEROTHER" = "TRUE" ]; then
+if [ "$USEOTHER" = "TRUE" ]; then
     chmod +x /other.sh
     sh /other.sh
 fi
