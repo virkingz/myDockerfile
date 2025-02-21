@@ -1,4 +1,4 @@
-FROM node
+FROM node:18.20.7-alpine
 
 COPY ./work /root/work
 RUN npm install -g wrangler
