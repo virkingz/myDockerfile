@@ -30,8 +30,9 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
+          cd cfproxy && \
           docker buildx build \
           --platform=linux/amd64,linux/arm64 \
           --output "type=image,push=true" \
-          --file ./cfproxy/Dockerfile . \
+          --file ./Dockerfile . \
           --tag virking/cfproxy
