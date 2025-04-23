@@ -6,8 +6,6 @@ on:
       - 'main'
     paths:
       - 'cfproxy/**'
-  schedule:
-      - cron: '0 0 1-30/3 * *'
       
 jobs:
   buildx:
