@@ -1,23 +1,27 @@
+FROM python:3.9-slim as builder
+
+WORKDIR /build
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# 运行阶段
 FROM python:3.9-slim
 
-# 设置工作目录
 WORKDIR /app
 
-# 复制依赖文件
-COPY requirements.txt .
+# 从构建阶段复制已安装的包
+COPY --from=builder /root/.local /root/.local
 
-# 安装依赖
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 复制应用文件
+# 复制应用代码
 COPY ./app /app
 
-# 暴露端口
-EXPOSE 5000
+# 确保 Python 可以找到用户安装的包
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/app
 
 # 设置环境变量
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 
-# 启动应用
+EXPOSE 5000
 CMD ["python", "app.py"]
