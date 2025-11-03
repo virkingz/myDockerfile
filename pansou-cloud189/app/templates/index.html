@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盘搜搜索</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .description {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .search-box {
+            background: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1.1rem;
+            padding: 10px 0;
+        }
+
+        .search-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-button:hover {
+            background: #2980b9;
+        }
+
+        .results-container {
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-count {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .result-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+
+        .result-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-url {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .result-url:hover {
+            text-decoration: underline;
+        }
+
+        .result-note {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .result-meta {
+            display: flex;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .result-password {
+            margin-right: 20px;
+        }
+
+        .result-password span {
+            font-weight: 500;
+            color: #e74c3c;
+        }
+
+        .result-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .add-button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .add-button:hover {
+            background: #219653;
+        }
+
+        .add-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            color: #2c3e50;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .cancel-button {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .confirm-add-button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .search-box {
+                flex-direction: column;
+                border-radius: 15px;
+                padding: 15px;
+            }
+
+            .search-input {
+                margin-bottom: 15px;
+                padding: 15px;
+                border: 1px solid #eee;
+                border-radius: 8px;
+            }
+
+            .search-button {
+                border-radius: 8px;
+            }
+
+            .result-meta {
+                flex-direction: column;
+            }
+
+            .result-password {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>盘搜搜索</h1>
+            <p class="description">搜索天翼云盘资源，快速找到您需要的文件</p>
+        </header>
+
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="输入您要搜索的内容...">
+            <button class="search-button" id="searchButton">搜索</button>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在搜索中，请稍候...</p>
+        </div>
+
+        <div class="results-container" id="resultsContainer">
+            <div class="results-header">
+                <h2>搜索结果</h2>
+                <div class="results-count" id="resultsCount">找到 0 条结果</div>
+            </div>
+
+            <div class="results-list" id="resultsList">
+                <!-- 搜索结果将在这里动态生成 -->
+            </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <i>🔍</i>
+            <h3>开始搜索</h3>
+            <p>在搜索框中输入关键词，查找天翼云盘资源</p>
+        </div>
+    </div>
+
+    <!-- 添加资源模态框 -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加到云盘</h3>
+                <button class="close-button" id="closeModal">&times;</button>
+            </div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label class="form-label" for="localPath">本地路径</label>
+                    <input type="text" class="form-input" id="localPath" placeholder="例如: /如懿传" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shareCode">分享代码</label>
+                    <input type="text" class="form-input" id="shareCode" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="shareAccessCode">访问密码</label>
+                    <input type="text" class="form-input" id="shareAccessCode" readonly>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="cancel-button" id="cancelAdd">取消</button>
+                    <button type="submit" class="confirm-add-button">确认添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>盘搜搜索 &copy; 2023 - 基于天翼云盘资源</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultsList = document.getElementById('resultsList');
+            const resultsCount = document.getElementById('resultsCount');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const emptyState = document.getElementById('emptyState');
+            const addModal = document.getElementById('addModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelAdd = document.getElementById('cancelAdd');
+            const addForm = document.getElementById('addForm');
+            const localPathInput = document.getElementById('localPath');
+            const shareCodeInput = document.getElementById('shareCode');
+            const shareAccessCodeInput = document.getElementById('shareAccessCode');
+
+            let currentResult = null;
+
+            // 搜索功能
+            function performSearch() {
+                const keyword = searchInput.value.trim();
+
+                if (!keyword) {
+                    showError('请输入搜索关键词');
+                    return;
+                }
+
+                // 显示加载状态
+                loading.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                emptyState.style.display = 'none';
+
+                // 发送搜索请求
+                fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `keyword=${encodeURIComponent(keyword)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+
+                    if (data.success) {
+                        displayResults(data.results);
+                    } else {
+                        showError(data.message || '搜索失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    showError('网络错误，请检查连接后重试');
+                    console.error('搜索错误:', error);
+                });
+            }
+
+            // 显示错误信息
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                emptyState.style.display = 'none';
+            }
+
+            // 显示成功信息
+            function showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            }
+
+            // 显示搜索结果
+            function displayResults(results) {
+                if (results.length === 0) {
+                    emptyState.style.display = 'block';
+                    resultsContainer.style.display = 'none';
+                    return;
+                }
+
+                resultsCount.textContent = `找到 ${results.length} 条结果`;
+                resultsList.innerHTML = '';
+
+                results.forEach(result => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+
+                    const url = result.url || '';
+                    const password = result.password || '';
+                    const note = result.note || '';
+
+                    // 从URL中提取分享代码
+                    let shareCode = '';
+                    let shareAccessCode = password;
+
+                    // 尝试从URL中提取分享代码
+                    const urlMatch = url.match(/\/t\/([a-zA-Z0-9]+)/);
+                    if (urlMatch && urlMatch[1]) {
+                        shareCode = urlMatch[1];
+                    }
+
+                    // 如果URL中包含访问码，也提取出来
+                    const accessCodeMatch = url.match(/访问码：([a-zA-Z0-9]+)/);
+                    if (accessCodeMatch && accessCodeMatch[1]) {
+                        shareAccessCode = accessCodeMatch[1];
+                    }
+
+                    resultItem.innerHTML = `
+                        <a href="${url}" class="result-url" target="_blank">${url}</a>
+                        <div class="result-note">${note}</div>
+                        <div class="result-meta">
+                            ${password ? `<div class="result-password">提取密码: <span>${password}</span></div>` : ''}
+                            <div class="result-source">来源: ${result.source || '未知'}</div>
+                        </div>
+                        <div class="result-actions">
+                            <button class="add-button" data-share-code="${shareCode}" data-access-code="${shareAccessCode}">添加到云盘</button>
+                        </div>
+                    `;
+
+                    resultsList.appendChild(resultItem);
+                });
+
+                // 为所有添加按钮添加事件监听
+                document.querySelectorAll('.add-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const shareCode = this.getAttribute('data-share-code');
+                        const accessCode = this.getAttribute('data-access-code');
+
+                        if (!shareCode) {
+                            showError('无法提取分享代码，请手动输入');
+                            return;
+                        }
+
+                        openAddModal(shareCode, accessCode);
+                    });
+                });
+
+                resultsContainer.style.display = 'block';
+                emptyState.style.display = 'none';
+            }
+
+            // 打开添加模态框
+            function openAddModal(shareCode, accessCode) {
+                shareCodeInput.value = shareCode;
+                shareAccessCodeInput.value = accessCode || '';
+                localPathInput.value = `/${searchInput.value.trim()}`;
+                addModal.style.display = 'flex';
+            }
+
+            // 关闭添加模态框
+            function closeAddModal() {
+                addModal.style.display = 'none';
+                localPathInput.value = '';
+                shareCodeInput.value = '';
+                shareAccessCodeInput.value = '';
+            }
+
+            // 添加资源
+            function addResource(localPath, shareCode, shareAccessCode) {
+                // 禁用添加按钮
+                const confirmButton = addForm.querySelector('.confirm-add-button');
+                confirmButton.disabled = true;
+                confirmButton.textContent = '添加中...';
+
+                fetch('/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        localPath: localPath,
+                        shareCode: shareCode,
+                        shareAccessCode: shareAccessCode
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 重新启用按钮
+                    confirmButton.disabled = false;
+                    confirmButton.textContent = '确认添加';
+
+                    if (data.success) {
+                        showSuccess(data.message || '资源添加成功');
+                        closeAddModal();
+                    } else {
+                        showError(data.message || '添加失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    // 重新启用按钮
+                    confirmButton.disabled = false;
+                    confirmButton.textContent = '确认添加';
+
+                    showError('网络错误，请检查连接后重试');
+                    console.error('添加错误:', error);
+                });
+            }
+
+            // 事件监听
+            searchButton.addEventListener('click', performSearch);
+
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            closeModal.addEventListener('click', closeAddModal);
+            cancelAdd.addEventListener('click', closeAddModal);
+
+            addForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const localPath = localPathInput.value.trim();
+                const shareCode = shareCodeInput.value.trim();
+                const shareAccessCode = shareAccessCodeInput.value.trim();
+
+                if (!localPath) {
+                    showError('请输入本地路径');
+                    return;
+                }
+
+                if (!shareCode) {
+                    showError('分享代码不能为空');
+                    return;
+                }
+
+                addResource(localPath, shareCode, shareAccessCode);
+            });
+
+            // 点击模态框外部关闭
+            window.addEventListener('click', function(e) {
+                if (e.target === addModal) {
+                    closeAddModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
