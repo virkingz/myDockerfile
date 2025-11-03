@@ -1,4 +1,4 @@
-name: Build fastapi Image
+name: Build pansou-cloud189 Image
  
 on:
   push:
