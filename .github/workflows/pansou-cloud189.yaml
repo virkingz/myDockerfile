@@ -2,13 +2,6 @@ name: Build pansou-cloud189 Image
  
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - 'pansou-cloud189/**'
-  schedule:
-      - cron: '0 0 1-30/3 * *'
       
 jobs:
   buildx:
