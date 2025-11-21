@@ -10,9 +10,10 @@ services:
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=production
-      - SEARCH_API_URL=#fish2018/pansou的部署地址后面加上这个 /api/search
-      - ADD_API_URL= #cloudpan189-shared的部署地址后面加上这个 /api/storage/add
-      - AUTHORIZATION_TOKEN= #cloudpan189-share 抓包获取Authorization
+      - SEARCH_API_URL=#fish2018/pansou的部署地址
+      - ADD_API_URL= #cloudpan189-shared的部署地址
+      - USERNAME= #cloudpan189-shared的用户名
+      - PASSWORD= #cloudpan189-shared的密码
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000"]
       interval: 30s
