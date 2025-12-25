@@ -6,6 +6,7 @@ import httpx
 from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 import urllib.parse
+import time
 
 # 基础日志配置
 logging.basicConfig(
@@ -15,15 +16,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 从环境变量获取配置
-MATTERMOST_WEBHOOK_URL = os.getenv("MATTERMOST_WEBHOOK_URL", "")
-if not MATTERMOST_WEBHOOK_URL:
-    logger.error("错误：MATTERMOST_WEBHOOK_URL环境变量未设置！")
+MATTERMOST_WEBHOOK_BASE_URL = os.getenv("MATTERMOST_WEBHOOK_BASE_URL", "")
+if not MATTERMOST_WEBHOOK_BASE_URL:
+    logger.error("错误：MATTERMOST_WEBHOOK_BASE_URL环境变量未设置！")
     exit(1)
 
 app = FastAPI(title="Bark to Mattermost", version="2.0")
 
 # HTTP客户端
 client = httpx.AsyncClient(timeout=10.0)
+
+def get_mattermost_webhook_url(device_key: str) -> str:
+    """根据device_key构建Mattermost Webhook URL"""
+    # 确保base URL以斜杠结尾
+    base_url = MATTERMOST_WEBHOOK_BASE_URL.rstrip('/')
+    # 构建完整的webhook URL: base_url/hooks/device_key
+    return f"{base_url}/hooks/{device_key}"
 
 def parse_bark_data(
     title: str = "",
@@ -106,22 +114,17 @@ def build_mattermost_payload(bark_data: dict) -> dict:
 
     text_content = "\n".join(lines)
     if not text_content:
-        text_content = "空通知"
+        text_content = None  # 标记为空内容
 
     # Mattermost格式
-    payload = {"text": text_content}
-
-    # 如果有指定频道，添加到payload
-    #if group:
-    #    payload["channel"] = group
-
-    return payload
+    return {"text": text_content} if text_content else None
 
 @app.get("/")
 async def root():
     return {"status": "running", "service": "bark-to-mattermost"}
 
 @app.get("/{device_key}")
+@app.get("/{device_key}/")
 async def bark_without_body(
     device_key: str,
     title: str = "",
@@ -151,19 +154,36 @@ async def bark_without_body(
         "is_archive": is_archive
     }
 
-    logger.info(f"收到Bark推送: {bark_data.get('title', '无标题')}")
+    logger.info(f"收到Bark推送 (device_key: {device_key}): {bark_data.get('title', '无标题')}")
 
-    # 构建并转发
+    # 构建Mattermost payload
     payload = build_mattermost_payload(bark_data)
-    logger.info(f"{str(payload)}")
+
+    # 如果payload为空（标题和正文都为空），则不发送到Mattermost
+    if not payload:
+        logger.info(f"空通知，不发送到Mattermost (device_key: {device_key})")
+        return {
+            "code": 200,
+            "message": "success",
+            "timestamp": int(time.time() * 1000)
+        }
+
+    mattermost_url = get_mattermost_webhook_url(device_key)
+
+    logger.info(f"目标Mattermost URL: {mattermost_url}")
+    logger.info(f"发送内容: {json.dumps(payload, ensure_ascii=False)}")
 
     try:
         response = await client.post(
-            MATTERMOST_WEBHOOK_URL,
+            mattermost_url,
             json=payload,
             headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
+        logger.info(f"转发成功: {response.status_code}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP错误: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=500, detail=f"转发失败: HTTP {e.response.status_code}")
     except Exception as e:
         logger.error(f"转发失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"转发失败: {str(e)}")
@@ -204,19 +224,36 @@ async def bark_with_url_path(
         "is_archive": is_archive
     }
 
-    logger.info(f"收到Bark推送: {bark_data['title']}")
+    logger.info(f"收到Bark推送 (device_key: {device_key}): {bark_data['title']}")
 
-    # 构建并转发
+    # 构建Mattermost payload
     payload = build_mattermost_payload(bark_data)
-    logger.info(f"{str(payload)}")
+
+    # 如果payload为空（标题和正文都为空），则不发送到Mattermost
+    if not payload:
+        logger.info(f"空通知，不发送到Mattermost (device_key: {device_key})")
+        return {
+            "code": 200,
+            "message": "success",
+            "timestamp": int(time.time() * 1000)
+        }
+
+    mattermost_url = get_mattermost_webhook_url(device_key)
+
+    logger.info(f"目标Mattermost URL: {mattermost_url}")
+    logger.info(f"发送内容: {json.dumps(payload, ensure_ascii=False)}")
 
     try:
         response = await client.post(
-            MATTERMOST_WEBHOOK_URL,
+            mattermost_url,
             json=payload,
             headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
+        logger.info(f"转发成功: {response.status_code}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP错误: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=500, detail=f"转发失败: HTTP {e.response.status_code}")
     except Exception as e:
         logger.error(f"转发失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"转发失败: {str(e)}")
@@ -228,6 +265,7 @@ async def bark_with_url_path(
     }
 
 @app.post("/{device_key}")
+@app.post("/{device_key}/")
 async def bark_post_json(
     device_key: str,
     request: Request
@@ -238,19 +276,36 @@ async def bark_post_json(
     except:
         raise HTTPException(status_code=400, detail="无效的JSON格式")
 
-    logger.info(f"收到Bark JSON推送: {bark_data.get('title', '无标题')}")
+    logger.info(f"收到Bark JSON推送 (device_key: {device_key}): {bark_data.get('title', '无标题')}")
 
-    # 构建并转发
+    # 构建Mattermost payload
     payload = build_mattermost_payload(bark_data)
-    logger.info(f"{str(payload)}")
+
+    # 如果payload为空（标题和正文都为空），则不发送到Mattermost
+    if not payload:
+        logger.info(f"空通知，不发送到Mattermost (device_key: {device_key})")
+        return {
+            "code": 200,
+            "message": "success",
+            "timestamp": int(time.time() * 1000)
+        }
+
+    mattermost_url = get_mattermost_webhook_url(device_key)
+
+    logger.info(f"目标Mattermost URL: {mattermost_url}")
+    logger.info(f"发送内容: {json.dumps(payload, ensure_ascii=False)}")
 
     try:
         response = await client.post(
-            MATTERMOST_WEBHOOK_URL,
+            mattermost_url,
             json=payload,
             headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
+        logger.info(f"转发成功: {response.status_code}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP错误: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=500, detail=f"转发失败: HTTP {e.response.status_code}")
     except Exception as e:
         logger.error(f"转发失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"转发失败: {str(e)}")
@@ -270,19 +325,39 @@ async def handle_json_webhook(request: Request):
     except:
         raise HTTPException(status_code=400, detail="无效的JSON格式")
 
-    logger.info(f"收到通用Webhook: {bark_data.get('title', '无标题')}")
+    # 尝试从JSON中获取device_key，如果没有则使用默认值
+    device_key = bark_data.get("device_key", "default")
 
-    # 构建并转发
+    logger.info(f"收到通用Webhook (device_key: {device_key}): {bark_data.get('title', '无标题')}")
+
+    # 构建Mattermost payload
     payload = build_mattermost_payload(bark_data)
-    logger.info(f"{str(payload)}")
+
+    # 如果payload为空（标题和正文都为空），则不发送到Mattermost
+    if not payload:
+        logger.info(f"空通知，不发送到Mattermost (device_key: {device_key})")
+        return {
+            "code": 200,
+            "message": "success",
+            "timestamp": int(time.time() * 1000)
+        }
+
+    mattermost_url = get_mattermost_webhook_url(device_key)
+
+    logger.info(f"目标Mattermost URL: {mattermost_url}")
+    logger.info(f"发送内容: {json.dumps(payload, ensure_ascii=False)}")
 
     try:
         response = await client.post(
-            MATTERMOST_WEBHOOK_URL,
+            mattermost_url,
             json=payload,
             headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
+        logger.info(f"转发成功: {response.status_code}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP错误: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=500, detail=f"转发失败: HTTP {e.response.status_code}")
     except Exception as e:
         logger.error(f"转发失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"转发失败: {str(e)}")
@@ -296,7 +371,7 @@ async def handle_json_webhook(request: Request):
 @app.on_event("startup")
 async def startup():
     logger.info(f"服务启动，监听端口 8000")
-    logger.info(f"Mattermost Webhook: {MATTERMOST_WEBHOOK_URL[:50]}...")
+    logger.info(f"Mattermost Webhook Base URL: {MATTERMOST_WEBHOOK_BASE_URL}")
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -305,5 +380,4 @@ async def shutdown():
 
 if __name__ == "__main__":
     import uvicorn
-    import time
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
