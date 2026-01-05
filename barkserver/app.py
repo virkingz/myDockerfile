@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import re
 from typing import Optional
 import httpx
 from fastapi import FastAPI, Request, HTTPException
@@ -60,11 +61,6 @@ def build_mattermost_payload(bark_data: dict) -> dict:
     if body:
         lines.append(body)
 
-    # 4. 链接
-    url = bark_data.get("url", "")
-    if url:
-        lines.append(f"[🔗 链接]({url})")
-
     # 5. 徽章
     badge = bark_data.get("badge", "")
     if badge:
@@ -84,9 +80,18 @@ def build_mattermost_payload(bark_data: dict) -> dict:
     if group:
         lines.append(f"🏷️ 分组: {group}")
 
-    text_content = "\n".join(lines)
-    if not text_content:
-        text_content = None  # 标记为空内容
+    if lines:
+        text_content = "\n".join(lines)
+        # 移除所有URL链接
+        text_content = re.sub(r'https?://\S+', '', text_content)
+        # 清理多余的空行
+        text_content = re.sub(r'\n\s*\n+', '\n', text_content).strip()
+    else:
+        text_content = None
+
+    markdown = bark_data.get("markdown", "")
+    if markdown:
+        text_content = markdown
 
     # Mattermost格式
     return {"text": text_content} if text_content else None
@@ -97,43 +102,43 @@ def parse_bark_request(path: str, query_string: str, method: str, body_data: dic
     query_params = {}
     if query_string:
         query_params = dict(urllib.parse.parse_qsl(query_string))
-    
+
     # 解析路径
     parts = path.strip('/').split('/')
-    
+
     if len(parts) == 0:
         return None
-    
+
     device_key = parts[0]
-    
+
     # 初始化bark数据
     bark_data = {
         "title": "",
         "body": "",
         "device_key": device_key
     }
-    
+
     # 处理查询参数
     if 'title' in query_params:
         bark_data['title'] = urllib.parse.unquote(query_params['title'])
     if 'body' in query_params:
         bark_data['body'] = urllib.parse.unquote(query_params['body'])
-    
+
     # 其他参数
     for param in ['url', 'group', 'icon', 'copy']:
         if param in query_params:
             bark_data[param] = urllib.parse.unquote(query_params[param])
-    
+
     for param in ['level', 'badge', 'autoCopy', 'sound', 'isArchive']:
         if param in query_params:
             bark_data[param.lower().replace('copy', '_copy')] = query_params[param]
-    
+
     # 处理路径参数
     if len(parts) > 1:
         # 将所有后续部分合并
         path_content = '/'.join(parts[1:])
         decoded_path = urllib.parse.unquote(path_content)
-        
+
         # 如果查询参数中没有标题，尝试从路径中解析
         if not bark_data['title'] and not bark_data['body']:
             # 尝试用第一个斜杠分割标题和正文
@@ -143,7 +148,7 @@ def parse_bark_request(path: str, query_string: str, method: str, body_data: dic
                 bark_data['body'] = title_body[1] if len(title_body) > 1 else ""
             else:
                 bark_data['title'] = decoded_path
-    
+
     # 合并POST body数据
     if body_data:
         # 更新bark_data，body_data优先
@@ -157,7 +162,7 @@ def parse_bark_request(path: str, query_string: str, method: str, body_data: dic
                 bark_data[key.lower()] = str(value)
             elif key.lower() == 'autocopy':
                 bark_data['auto_copy'] = str(value)
-    
+
     return bark_data
 
 @app.middleware("http")
@@ -166,13 +171,16 @@ async def bark_middleware(request: Request, call_next):
     # 获取请求信息
     path = request.url.path
     method = request.method
+
+    # 排除不需要中间件处理的路径
+    excluded_paths = ["/", "/push", "/webhook", "/favicon.ico", "/docs", "/openapi.json", "/redoc"]
     
-    # 只处理Bark相关的路径
-    if path == "/":
+    # 如果请求路径在排除列表中，直接继续处理
+    if path in excluded_paths or path.startswith(("/docs", "/redoc")):
         return await call_next(request)
-    
+
     logger.info(f"收到请求: {method} {path}")
-    
+
     # 解析请求
     try:
         # 获取body数据
@@ -184,28 +192,28 @@ async def bark_middleware(request: Request, call_next):
                     body_data = await request.json()
                 except:
                     body_data = {}
-        
+
         # 解析Bark请求
         bark_data = parse_bark_request(
-            path, 
-            str(request.query_params), 
-            method, 
+            path,
+            str(request.query_params),
+            method,
             body_data
         )
-        
+
         if not bark_data:
             return JSONResponse(
                 status_code=400,
                 content={"code": 400, "message": "Invalid request"}
             )
-        
+
         device_key = bark_data.get("device_key", "")
-        
+
         logger.info(f"解析Bark数据: device_key={device_key}, title={bark_data.get('title', '')[:50]}...")
-        
+
         # 构建Mattermost payload
         payload = build_mattermost_payload(bark_data)
-        
+
         # 如果payload为空（标题和正文都为空），则不发送到Mattermost
         if not payload:
             logger.info(f"空通知，不发送到Mattermost (device_key: {device_key})")
@@ -216,11 +224,11 @@ async def bark_middleware(request: Request, call_next):
                     "timestamp": int(time.time() * 1000)
                 }
             )
-        
+
         mattermost_url = get_mattermost_webhook_url(device_key)
-        
+
         logger.info(f"目标Mattermost URL: {mattermost_url}")
-        
+
         try:
             response = await client.post(
                 mattermost_url,
@@ -229,7 +237,7 @@ async def bark_middleware(request: Request, call_next):
             )
             response.raise_for_status()
             logger.info(f"转发成功: {response.status_code}")
-            
+
             return JSONResponse(
                 content={
                     "code": 200,
@@ -257,7 +265,7 @@ async def bark_middleware(request: Request, call_next):
                     "timestamp": int(time.time() * 1000)
                 }
             )
-            
+
     except Exception as e:
         logger.error(f"处理请求失败: {str(e)}")
         return JSONResponse(
@@ -281,15 +289,15 @@ async def handle_json_webhook(request: Request):
         bark_data = await request.json()
     except:
         raise HTTPException(status_code=400, detail="无效的JSON格式")
-    
+
     # 尝试从JSON中获取device_key，如果没有则使用默认值
     device_key = bark_data.get("device_key", "default")
-    
+
     logger.info(f"收到通用Webhook (device_key: {device_key}): {bark_data.get('title', '无标题')}")
 
     # 构建Mattermost payload
     payload = build_mattermost_payload(bark_data)
-    
+
     # 如果payload为空（标题和正文都为空），则不发送到Mattermost
     if not payload:
         logger.info(f"空通知，不发送到Mattermost (device_key: {device_key})")
@@ -298,9 +306,9 @@ async def handle_json_webhook(request: Request):
             "message": "success",
             "timestamp": int(time.time() * 1000)
         }
-    
+
     mattermost_url = get_mattermost_webhook_url(device_key)
-    
+
     logger.info(f"目标Mattermost URL: {mattermost_url}")
     logger.info(f"发送内容: {json.dumps(payload, ensure_ascii=False)}")
 
