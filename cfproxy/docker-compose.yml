@@ -1,0 +1,11 @@
+services:
+  cfproxy:
+    image: virking/cfproxy
+    container_name: cfproxy
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PROXY_PASSWORD=123
+      - SHOW_PASSWORD_PAGE=true
+      - LOG_LEVEL=info
