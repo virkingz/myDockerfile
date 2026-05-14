@@ -1,11 +1,7 @@
 name: Build cfproxy Image
  
 on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - 'cfproxy/**'
+  workflow_dispatch:
       
 jobs:
   buildx:
