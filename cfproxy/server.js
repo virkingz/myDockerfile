@@ -601,14 +601,14 @@ app.all('*', async (req, res) => {
   }
 
   // ========== 特殊路径处理 ==========
-//  if (req.path === '/favicon.ico') {
-//    log('debug', 'SPECIAL', `[${requestId}] favicon.ico requested`);
-//    return res.status(204).end();
-//  }
-//  if (req.path === '/robots.txt') {
-//    log('debug', 'SPECIAL', `[${requestId}] robots.txt requested`);
-//    return res.type('text/plain').send("User-agent: *\nDisallow: /");
-//  }
+  if (req.path === '/favicon.ico') {
+    log('debug', 'SPECIAL', `[${requestId}] favicon.ico requested`);
+    return res.status(204).end();
+  }
+  if (req.path === '/robots.txt') {
+    log('debug', 'SPECIAL', `[${requestId}] robots.txt requested`);
+    return res.type('text/plain').send("User-agent: *\nDisallow: /");
+  }
 
   // ========== 提取目标 URL ==========
   let actualUrlStr = decodeURIComponent(req.path.substring(STR.length) + req.url.substring(req.path.length));
